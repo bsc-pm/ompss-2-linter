@@ -559,6 +559,9 @@ UINT64 OnTaskCreate(UINT64 taskid, VOID *invocation_info, UINT64 flags, ADDRINT 
 		// anyway to simplify handling errors in the remaining code.
 		// task = task_create_ignored(thread, thread->submit_taskid);
 		task = IGNORED_TASK;
+
+		thread->created_task = task;
+
 		task_register(taskid, task);
 	}
 	else {
