@@ -67,12 +67,12 @@ KNOB<string> KnobOutputDir(
 		"specify output directory");
 
 KNOB<string> KnobExperimentName(
-	KNOB_MODE_WRITEONCE, "pintool", "e", "pin",
+	KNOB_MODE_WRITEONCE, "pintool", "exp", "pin",
 		"specify experiment name");
 
 KNOB<string> KnobReportLevel(
-	KNOB_MODE_WRITEONCE, "pintool", "r", "warning",
-		"minimum report level (debug < notice < warning)");
+	KNOB_MODE_WRITEONCE, "pintool", "r", "WRN",
+		"minimum report level (DBG < NTC < WRN)");
 
 KNOB<UINT64> KnobDebugLevel(
 	KNOB_MODE_WRITEONCE, "pintool", "d", "0",
@@ -126,7 +126,7 @@ KNOB<UINT64> KnobAggregationLevel(
 
 // Only when the engine is "online"
 KNOB<bool> KnobEasyOutput(
-	KNOB_MODE_WRITEONCE, "pintool", "easy-output", "false",
+	KNOB_MODE_WRITEONCE, "pintool", "e", "false",
 		"ease the reading of the output produced by the tool (aggregate tasks)");
 
 // Only when the engine is "online"
@@ -1457,7 +1457,7 @@ VOID OnIgnoredRegionAccessRegistrationCommon(dep_mode_t depmode, ADDRINT retip, 
 	// This is a trick, we create a dependency to exploit the logic
 	// which generates fragment, but then we delete it because we
 	// convert it into memory accesses to be saved into the buffer
-	// 
+	//
 	// FIXME: "DEP_FAKE" needed to avoid triggering the execution
 	// of some checks in dep_register... DEP_FAKE should become a
 	// dep_type_t value?
@@ -3856,7 +3856,7 @@ VOID OnTraceExecutionBegin(UINT64 trace_version, ISTATE InstrState, ADDRINT addr
 	thread_data_t *thread = PIN_GetThread();
 
 	bool must_switch = (
-		(istate_reg == INSTR_STATE_CLEAN && trace_version == TRACE_VERSION_INSTR) 
+		(istate_reg == INSTR_STATE_CLEAN && trace_version == TRACE_VERSION_INSTR)
 		||
 		(istate_reg == INSTR_STATE_INSTR && trace_version == TRACE_VERSION_CLEAN)
 	);
@@ -3958,33 +3958,33 @@ VOID Trace(TRACE Trace, VOID *v) {
 
 	// Instrumentation versioning
 	// --------------------------
-	// 
+	//
 	// Two instrumentation versions are maintained:
 	// - VERSION 0 (INSTR): memory tracing enabled (default)
 	// - VERSION 1 (CLEAN): memory tracing disabled
-	// 
+	//
 	// PIN instrumentation versioning works by maintaining a tag
 	// for each trace, representing the instrumentation to which
 	// that trace belongs; additionally, a scratch register is used
 	// to switch programmatically between different instrumentation
 	// versions.
-	// 
+	//
 	// By default, traces are instrumented. Before executing any
 	// concrete instruction of a trace, we instruct PIN to check if
 	// there is a discrepancy between the current version tag and
 	// the version register. If so, execution is interrupted and
 	// resumed at the right instrumentation version for that trace.
-	// 
+	//
 	// The scratch register is set at runtime:
 	// - Whenever we enter inside a task
 	// - Whenever we exit from a task
 	// - Whenever we enter/leave an ignored region inside a task
-	// 
+	//
 	// The value which is set depends on the tracing level for that
 	// task, meaning that there is a version register value change
 	// IF AND ONLY IF there is a correspondent tracing state change
 	// from ENABLED to !ENABLED, or vice-versa.
-	// 
+	//
 	// Notice that VERSION 0 is the default version tag, but the
 	// default value for the version register is VERSION 1, hence
 	// upon executing the first trace of the program there will be
@@ -4413,11 +4413,11 @@ INT32 main(INT32 argc, CHAR *argv[], CHAR *envp[]) {
 				config.logs_dir);
 		}
 
-		if (KnobReportLevel.Value().compare("warning") == 0) {
+		if (KnobReportLevel.Value().compare("WRN") == 0) {
 			config.min_report_level = config.REPORT_WARNING;
-		} else if (KnobReportLevel.Value().compare("notice") == 0) {
+		} else if (KnobReportLevel.Value().compare("NTC") == 0) {
 			config.min_report_level = config.REPORT_NOTICE;
-		} else if (KnobReportLevel.Value().compare("debug") == 0) {
+		} else if (KnobReportLevel.Value().compare("DBG") == 0) {
 			config.min_report_level = config.REPORT_DEBUG;
 		} else {
 			error(NULL, NULL,
@@ -4580,7 +4580,9 @@ INT32 main(INT32 argc, CHAR *argv[], CHAR *envp[]) {
 	debug(1, NULL, NULL,
 		"\tKeep traces: %s", config.keep_traces ? "yes" : "no");
 	debug(1, NULL, NULL,
-		"\tAggregate reports: %u", config.aggregation_level);
+		"\tAggregation level: %u", config.aggregation_level);
+	debug(1, NULL, NULL,
+		"\tEasy output: %s", config.easy_output ? "yes" : "no");
 	debug(1, NULL, NULL,
 		"\tFrequent processing: %s", config.frequent_processing ? "yes" : "no");
 
