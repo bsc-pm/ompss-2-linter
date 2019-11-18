@@ -1,3 +1,10 @@
+/*
+	This file is part of OmpSs-2 Linter and is licensed under
+	the terms contained in the COPYING file.
+
+	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+*/
+
 INLINE
 thread_data_t *thread_create(uint32_t id, uint64_t stackbase) {
 	thread_data_t *thread = new thread_data_t;
@@ -81,5 +88,5 @@ void thread_pop_task(thread_data_t *thread) {
 
 INLINE
 void thread_write_log(const char *format, ...) {
-	
+
 }

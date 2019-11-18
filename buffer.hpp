@@ -1,3 +1,10 @@
+/*
+	This file is part of OmpSs-2 Linter and is licensed under
+	the terms contained in the COPYING file.
+
+	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+*/
+
 // Maximum number of buffer entries per task
 #define BUFFER_NUM_ENTRIES      (config.buffer_size * utils_get_os_page_size() / sizeof(buf_entry_t))
 

@@ -1,3 +1,10 @@
+/*
+	This file is part of OmpSs-2 Linter and is licensed under
+	the terms contained in the COPYING file.
+
+	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+*/
+
 #if 0
 #define DEP_DIMENSION_PTR_T(array)  uint64_t (array)[][3]
 
@@ -253,7 +260,7 @@ dep_t *dep_create(dep_type_t type, dep_mode_t mode, const char *name,
 	// The smallest dimension is in bytes. Higher dimensions use
 	// smaller dimensions as reference.
 	// dep_dim_t adim[ndim];
-	// 
+	//
 	// Cache volumes for each dimension
 	// A volume is the product of sizes for all smaller dimensions,
 	// starting from the highest dimension.

@@ -1,3 +1,10 @@
+/*
+	This file is part of OmpSs-2 Linter and is licensed under
+	the terms contained in the COPYING file.
+
+	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+*/
+
 // Maximum number of buffer entries per task
 #define BUFFER_NUM_ENTRIES      (config.buffer_size * utils_get_os_page_size() / sizeof(buf_entry_t))
 
@@ -63,13 +70,13 @@ bool filter_raw_access_1(buf_entry_t *bentry, task_data_t *task) {
 	// NOTE: This is a bit tricky to understand, but it might be
 	// that	via an "oss lint" pragma we specify an arbitrary interval
 	// that is so large that it overlaps with other images in memory.
-	// 
+	//
 	// Since this is clearly wrong, we must keep these accesses
 	// and complain about them. Therefore, an access is filtered
 	// if and only if it is *entirely* included in a filtered
 	// image or section. This is the semantics of all "*_find_by_itv"
 	// functions.
-	// 
+	//
 	// Currently we don't need any other version of "*_find_by_itv"
 	// which, e.g., returns an interval if there is an intersection.
 	// There is, however, a "*_find_by_addr" function which can be

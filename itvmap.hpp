@@ -1,3 +1,10 @@
+/*
+	This file is part of OmpSs-2 Linter and is licensed under
+	the terms contained in the COPYING file.
+
+	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+*/
+
 template <typename entry_t>
 using itvmap_process_pred_func_t =
 	bool (*)(const entry_t *val, const entry_t *other,
