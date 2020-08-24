@@ -3,7 +3,7 @@ CFLAGS:=-O0 --ompss-2 -g
 
 SRC_1:=linter-main-examples.c
 SRC_2:=linter-ann-examples.c
-PROGS:=E1 E2 E3 E4 E5 E6 E7 E8 ann
+PROGS:=E1 E2 E3 E4 E5 E6 E7 ann
 
 all: $(PROGS)
 

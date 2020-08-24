@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 	printf("(`WRN`) The task doesn't declare any write access to `w[4]`.\n");
 	printf("        (note: this is almost always a correctness error,\n");
 	printf("        which is why it is treated as a warning)");
-	#pragma oss task out(w)
+	#pragma oss task out(w[0;5])
 	{
 		for (int i = 0; i < 4; ++i)
 			w[i] = 0;
@@ -104,17 +104,23 @@ int main(int argc, char *argv[]) {
 
 
 // --------------------------------------------------------------
-// E3: Accessing a released region of a task dataset
+// E3: Missing access in the parent task dataset
 // --------------------------------------------------------------
 #ifdef E3
 
 	printf("\n");
-	printf("(`WRN`) The task read-writes `x` although its dependency has been released.\n");
-	#pragma oss task inout(x)
+	printf("(`WRN`) The outermost task doesn't declare any weak read-write access to `x`.\n");
+	#pragma oss task
 	{
-		x += 6;
-		#pragma oss release inout(x)
-		x += 7;
+		#pragma oss task in(x)
+		{
+			int y = x + 1;
+		}
+
+		#pragma oss task out(x)
+		{
+			x = 12;
+		}
 	}
 	#pragma oss taskwait
 
@@ -122,30 +128,17 @@ int main(int argc, char *argv[]) {
 
 
 // --------------------------------------------------------------
-// E4: Releasing a non-existent region of a task dataset
+// E4: Missing access in a child task dataset
 // --------------------------------------------------------------
 #ifdef E4
 
 	printf("\n");
-	printf("(`WRN`) The task is trying to release `x` although it has never\n");
-	printf("        been declared as an access.\n");
-	#pragma oss task inout(y)
+	printf("(`NTC`) A task declares a weak read-write access to `y` that is not declared\n");
+	printf("        as a (weak) access by any of its child tasks.\n");
+	#pragma oss task weakinout(x, y)
 	{
-		y += 5;
-
-		#pragma oss release out(x)
-	}
-	#pragma oss taskwait
-
-	printf("\n");
-	printf("(`WRN`) The task is trying to release `w[2:5]` although it has never\n");
-	printf("        been declared as an access.\n");
-	#pragma oss task out(w[0:2])
-	{
-		for (int i = 0; i < 3; ++i)
-			w[i] = i;
-
-		#pragma oss release out(w[2:5])
+		#pragma oss task inout(x)
+		x *= 6;
 	}
 	#pragma oss taskwait
 
@@ -203,23 +196,17 @@ int main(int argc, char *argv[]) {
 
 
 // --------------------------------------------------------------
-// E6: Missing region in the parent task dataset
+// E6: Missing access in task dataset (after release)
 // --------------------------------------------------------------
 #ifdef E6
 
 	printf("\n");
-	printf("(`WRN`) The outermost task doesn't declare any weak read-write access to `x`.\n");
-	#pragma oss task
+	printf("(`WRN`) The task read-writes `x` although its dependency has been released.\n");
+	#pragma oss task inout(x)
 	{
-		#pragma oss task in(x)
-		{
-			int y = x + 1;
-		}
-
-		#pragma oss task out(x)
-		{
-			x = 12;
-		}
+		x += 6;
+		#pragma oss release inout(x)
+		x += 7;
 	}
 	#pragma oss taskwait
 
@@ -227,17 +214,30 @@ int main(int argc, char *argv[]) {
 
 
 // --------------------------------------------------------------
-// E7: Missing access in a child task dataset
+// E7: Missing access in task dataset (upon release)
 // --------------------------------------------------------------
 #ifdef E7
 
 	printf("\n");
-	printf("(`NTC`) A task declares a weak read-write access to `y` that is not declared\n");
-	printf("        as a (weak) access by any of its child tasks.\n");
-	#pragma oss task weakinout(x, y)
+	printf("(`WRN`) The task is trying to release `x` although it has never\n");
+	printf("        been declared as an access.\n");
+	#pragma oss task inout(y)
 	{
-		#pragma oss task inout(x)
-		x *= 6;
+		y += 5;
+
+		#pragma oss release out(x)
+	}
+	#pragma oss taskwait
+
+	printf("\n");
+	printf("(`WRN`) The task is trying to release `w[2:5]` although it has never\n");
+	printf("        been declared as an access.\n");
+	#pragma oss task out(w[0:2])
+	{
+		for (int i = 0; i < 3; ++i)
+			w[i] = i;
+
+		#pragma oss release out(w[2:5])
 	}
 	#pragma oss taskwait
 
