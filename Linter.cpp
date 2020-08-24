@@ -1453,7 +1453,7 @@ UINT64 OnTaskWaitExit(UINT64 taskid, ISTATE InstrState) {
 }
 
 
-VOID OnIgnoredRegionAccessRegistrationCommon(dep_mode_t depmode, ADDRINT retip, ADDRINT baddr,
+VOID OnIgnoredRegionAccessRegistrationCommon(dep_mode_t depmode, ADDRINT retip, ADDRINT rsp, ADDRINT baddr,
                                              UINT64 ranges[][3], UINT64 ndim) {
 	thread_data_t *thread = PIN_GetThread();
 	expect_TASK_NOT_NULL(thread->task);
@@ -1499,16 +1499,23 @@ VOID OnIgnoredRegionAccessRegistrationCommon(dep_mode_t depmode, ADDRINT retip, 
 
 	img_t *img = image_find_by_addr(retip);
 
+	// These two values are needed if the declared access falls
+	// within the stack of the current task, to appropriately
+	// filter the access later
+	ADDRINT lowstack  = thread->task->stackbase;
+	ADDRINT highstack = rsp - 128;
+
+
 	for (auto &it : lint_access_dep->itvmap) {
 		const itv_t *itv = &it.first;
 
 		if (itv->mode == ITV_MODE_READ) {
 			task_save_raw_access(thread->task, ITV_MODE_READ,
-				XED_ICLASS_MOV, retip, itv->low, itv->high - itv->low, img->id, 0, 0);
+				XED_ICLASS_MOV, retip, itv->low, itv->high - itv->low, img->id, lowstack, highstack);
 		}
 		else if (itv->mode == ITV_MODE_WRITE) {
 			task_save_raw_access(thread->task, ITV_MODE_WRITE,
-				XED_ICLASS_MOV, retip, itv->low, itv->high - itv->low, img->id, 0, 0);
+				XED_ICLASS_MOV, retip, itv->low, itv->high - itv->low, img->id, lowstack, highstack);
 		}
 		else {
 			// All other fragments type are irrelevant
@@ -1522,7 +1529,7 @@ VOID OnIgnoredRegionAccessRegistrationCommon(dep_mode_t depmode, ADDRINT retip, 
 /*
 	Registers a new 1-dimension access.
  */
-VOID OnIgnoredRegionAccessRegistration1(dep_mode_t mode, ADDRINT retip, ADDRINT baddr,
+VOID OnIgnoredRegionAccessRegistration1(dep_mode_t mode, ADDRINT retip, ADDRINT rsp, ADDRINT baddr,
                                         UINT64 size1, UINT64 start1, UINT64 end1) {
 	expect(config.rtl_instrumentation_mode >= config.RTL_INSTRUMENTATION_INTERCEPT,
 		"This RTL callback function should not be called.");
@@ -1533,14 +1540,14 @@ VOID OnIgnoredRegionAccessRegistration1(dep_mode_t mode, ADDRINT retip, ADDRINT 
 
 	UINT64 ranges[1][3] = DEP_DIMENSION_ARRAY(1, size, start, end);
 
-	OnIgnoredRegionAccessRegistrationCommon(mode, retip, baddr, ranges, 1);
+	OnIgnoredRegionAccessRegistrationCommon(mode, retip, rsp, baddr, ranges, 1);
 }
 
 
 /*
 	Registers a new 2-dimension access.
  */
-VOID OnIgnoredRegionAccessRegistration2(dep_mode_t mode, ADDRINT retip, ADDRINT baddr,
+VOID OnIgnoredRegionAccessRegistration2(dep_mode_t mode, ADDRINT retip, ADDRINT rsp, ADDRINT baddr,
                                         UINT64 size1, UINT64 start1, UINT64 end1,
                                         UINT64 size2, UINT64 start2, UINT64 end2) {
 	expect(config.rtl_instrumentation_mode >= config.RTL_INSTRUMENTATION_INTERCEPT,
@@ -1552,14 +1559,14 @@ VOID OnIgnoredRegionAccessRegistration2(dep_mode_t mode, ADDRINT retip, ADDRINT 
 
 	UINT64 ranges[2][3] = DEP_DIMENSION_ARRAY(2, size, start, end);
 
-	OnIgnoredRegionAccessRegistrationCommon(mode, retip, baddr, ranges, 2);
+	OnIgnoredRegionAccessRegistrationCommon(mode, retip, rsp, baddr, ranges, 2);
 }
 
 
 /*
 	Registers a new 3-dimension access.
  */
-VOID OnIgnoredRegionAccessRegistration3(dep_mode_t mode, ADDRINT retip, ADDRINT baddr,
+VOID OnIgnoredRegionAccessRegistration3(dep_mode_t mode, ADDRINT retip, ADDRINT rsp, ADDRINT baddr,
                                         UINT64 size1, UINT64 start1, UINT64 end1,
                                         UINT64 size2, UINT64 start2, UINT64 end2,
                                         UINT64 size3, UINT64 start3, UINT64 end3) {
@@ -1572,14 +1579,14 @@ VOID OnIgnoredRegionAccessRegistration3(dep_mode_t mode, ADDRINT retip, ADDRINT 
 
 	UINT64 ranges[3][3] = DEP_DIMENSION_ARRAY(3, size, start, end);
 
-	OnIgnoredRegionAccessRegistrationCommon(mode, retip, baddr, ranges, 3);
+	OnIgnoredRegionAccessRegistrationCommon(mode, retip, rsp, baddr, ranges, 3);
 }
 
 
 /*
 	Registers a new 4-dimension access.
  */
-VOID OnIgnoredRegionAccessRegistration4(dep_mode_t mode, ADDRINT retip, ADDRINT baddr,
+VOID OnIgnoredRegionAccessRegistration4(dep_mode_t mode, ADDRINT retip, ADDRINT rsp, ADDRINT baddr,
                                         UINT64 size1, UINT64 start1, UINT64 end1,
                                         UINT64 size2, UINT64 start2, UINT64 end2,
                                         UINT64 size3, UINT64 start3, UINT64 end3,
@@ -1593,7 +1600,7 @@ VOID OnIgnoredRegionAccessRegistration4(dep_mode_t mode, ADDRINT retip, ADDRINT 
 
 	UINT64 ranges[4][3] = DEP_DIMENSION_ARRAY(4, size, start, end);
 
-	OnIgnoredRegionAccessRegistrationCommon(mode, retip, baddr, ranges, 4);
+	OnIgnoredRegionAccessRegistrationCommon(mode, retip, rsp, baddr, ranges, 4);
 }
 
 
@@ -2810,6 +2817,7 @@ VOID InstrumentIgnoredRegionAccessFunction(RTN &Routine) {
 			(AFUNPTR) OnIgnoredRegionAccessRegistration1,
 			IARG_UINT64, depmode,             // in, out, inout
 			IARG_RETURN_IP,                   // Return address (used as access address)
+			IARG_REG_VALUE, REG_STACK_PTR,    // Stack pointer (used if a stack access is declared)
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0, // Base address of the access
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 1, // Size of the 1st dimension
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 2, // Starting byte position in the 1st dimension (included)
@@ -2822,6 +2830,7 @@ VOID InstrumentIgnoredRegionAccessFunction(RTN &Routine) {
 			(AFUNPTR) OnIgnoredRegionAccessRegistration2,
 			IARG_UINT64, depmode,             // in, out, inout
 			IARG_RETURN_IP,                   // Return address (used as access address)
+			IARG_REG_VALUE, REG_STACK_PTR,    // Stack pointer (used if a stack access is declared)
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0, // Base address of the access
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 1, // Size of the 1st dimension
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 2, // Starting byte position in the 1st dimension (included)
@@ -2837,6 +2846,7 @@ VOID InstrumentIgnoredRegionAccessFunction(RTN &Routine) {
 			(AFUNPTR) OnIgnoredRegionAccessRegistration3,
 			IARG_UINT64, depmode,             // in, out, inout
 			IARG_RETURN_IP,                   // Return address (used as access address)
+			IARG_REG_VALUE, REG_STACK_PTR,    // Stack pointer (used if a stack access is declared)
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0, // Base address of the access
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 1, // Size of the 1st dimension
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 2, // Starting byte position in the 1st dimension (included)
@@ -2855,6 +2865,7 @@ VOID InstrumentIgnoredRegionAccessFunction(RTN &Routine) {
 			(AFUNPTR) OnIgnoredRegionAccessRegistration4,
 			IARG_UINT64, depmode,             // in, out, inout
 			IARG_RETURN_IP,                   // Return address (used as access address)
+			IARG_REG_VALUE, REG_STACK_PTR,    // Stack pointer (used if a stack access is declared)
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0, // Base address of the access
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 1,  // Size of the 1st dimension
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 2,  // Starting byte position in the 1st dimension (included)
